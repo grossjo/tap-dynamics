@@ -160,7 +160,7 @@ def discover(service, get_lookup_tables):
                 CatalogEntry(
                     stream="view_personal_contacts",
                     tap_stream_id="view_personal_contacts",
-                    key_properties=None,
+                    key_properties="opportunityid",
                     schema=create_views_schema('view_personal_contacts',view_personal_contacts_data),
                     metadata=create_metadata_views('personal',view_personal_contacts_data),
                 )
@@ -173,7 +173,7 @@ def discover(service, get_lookup_tables):
                 CatalogEntry(
                     stream="view_opportunities",
                     tap_stream_id="view_opportunities",
-                    key_properties=None,
+                    key_properties="opportunityid",
                     schema=create_views_schema('view_opportunities',view_opportunities_data),
                     metadata=create_metadata_views('system',view_opportunities_data),
                 )
