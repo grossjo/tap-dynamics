@@ -143,7 +143,7 @@ def main():
         reflect_entities=True,
         auth=auth,
         session=session,
-       #  quiet_progress=True, # this is a python-odata only flag, not the library we use
+        # quiet_progress=True, # this is a python-odata only flag, not the library we use
     )
     get_lookup_tables = parsed_args.config.get("get_lookup_tables", False)
     LOGGER.info("Discovering catalog")
@@ -158,6 +158,7 @@ def main():
         LOGGER.info(
             "Start date is: {}".format(start_date)
         )
+
         sync(
             service,
             catalog,

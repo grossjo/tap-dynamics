@@ -3,7 +3,7 @@ from datetime import datetime
 import singer
 from singer import metrics, metadata, Transformer
 from singer.bookmarks import set_currently_syncing
-
+from urllib.parse import urlparse, parse_qs
 from tap_dynamics.discover import discover
 
 LOGGER = singer.get_logger()
@@ -25,6 +25,18 @@ def write_bookmark(state, stream_name, value):
 def write_schema(stream):
     schema = stream.schema.to_dict()
     singer.write_schema(stream.tap_stream_id, schema, stream.key_properties)
+
+
+def get_raw_odata_response(query, query_params):
+    url = query.entity.__odata_url__()
+    response_data = query.connection.execute_get(url, params=query_params)
+    return response_data or {}
+
+def get_skiptoken(url):
+    parsed_url = urlparse(url)
+    query_params = parse_qs(parsed_url.query)
+    skiptoken = query_params.get('$skiptoken', [None])[0]
+    return skiptoken
 
 
 def sync_stream(service, catalog, state, start_date, stream, mdata):
@@ -52,6 +64,7 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
 
     schema = stream.schema.to_dict()
 
+
     count = 0
     with metrics.http_request_timer(stream.tap_stream_id):
         with metrics.record_counter(stream.tap_stream_id) as counter:
@@ -76,7 +89,6 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
                 count += 1
                 if count % 5000 == 0:
                     write_bookmark(state, stream_name, max_modified)
-
     write_bookmark(state, stream_name, max_modified)
 
 
@@ -136,6 +148,7 @@ def sync(service, catalog, state, start_date):
             update_current_stream(state, stream.tap_stream_id)
             sync_stream_views('userQuery','contacts',service, stream)
         elif stream.tap_stream_id == "view_opportunities":
+            LOGGER.debug("JG View opportunities")
             stream.views = get_views_by_metadata(stream.metadata)
             for stream_catalog in catalog.streams:
                 if stream_catalog.tap_stream_id == "opportunities":
@@ -147,6 +160,7 @@ def sync(service, catalog, state, start_date):
             sync_stream_views('savedQuery','opportunities',service, stream)
 
         elif stream.tap_stream_id == "view_personal_opportunities":
+            LOGGER.debug("JG View personal opportunities")
             stream.views = get_views_by_metadata(stream.metadata)
             for stream_catalog in catalog.streams:
                 if stream_catalog.tap_stream_id == "opportunities":
@@ -182,10 +196,34 @@ def get_items_by_view(query_param,entity,service,views):
     dict_views = {}
     for view_name,view_id in views.items():
         try:
-            view = query.raw({query_param: "{}".format(view_id)})
-            dict_views[view_name]=view
-        except:
+            LOGGER.info("View searching: %s", view_name)
+            LOGGER.info("View id: %s", view_id)
+            x = {query_param: "{}".format(view_id)}
+
+            base_query = {
+                query_param: "{}".format(view_id), 
+                "$orderby": "opportunityid"
+            }
+
+
+            view_response = get_raw_odata_response(query, base_query)
+            view_items = view_response.get('value')
+            next_link = view_response.get('@odata.nextLink')
+
+            dict_views[view_name]=view_items
+            while next_link:
+                skip_token = get_skiptoken(next_link)
+                base_query["$skiptoken"] = skip_token
+                LOGGER.info('Base query is: %s', base_query)
+                view_response = get_raw_odata_response(query, base_query)
+                next_link = view_response.get('@odata.nextLink')
+                view_items = view_response.get('value')
+                dict_views[view_name].extend(view_items)
+                
+            
+        except Exception as e:
             LOGGER.info("View not found: %s", view_id)
+            LOGGER.info("Error: %s", e)
         
     return dict_views
 
