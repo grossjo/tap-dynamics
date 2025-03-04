@@ -158,9 +158,6 @@ def main():
         LOGGER.info(
             "Start date is: {}".format(start_date)
         )
-        LOGGER.info("service: {}".format(service))
-        LOGGER.info("catalog: {}".format(catalog))
-        LOGGER.info("state: {}".format(parsed_args.state))
 
         sync(
             service,

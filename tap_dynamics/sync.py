@@ -64,7 +64,6 @@ def sync_stream(service, catalog, state, start_date, stream, mdata):
 
     schema = stream.schema.to_dict()
 
-    LOGGER.info("Pagination mode")
 
     count = 0
     with metrics.http_request_timer(stream.tap_stream_id):
@@ -199,14 +198,7 @@ def get_items_by_view(query_param,entity,service,views):
         try:
             LOGGER.info("View searching: %s", view_name)
             LOGGER.info("View id: %s", view_id)
-            LOGGER.info("Query param: %s", query_param)
-            LOGGER.info("Entity: %s", entity)
-            LOGGER.info("Service: %s", service)
-            LOGGER.info("Views: %s", views)
-            LOGGER.info("Query: %s", query)
             x = {query_param: "{}".format(view_id)}
-            LOGGER.info("X: %s", x)
-            LOGGER.info("View found: %s", view_name)
 
             base_query = {
                 query_param: "{}".format(view_id), 
@@ -220,8 +212,6 @@ def get_items_by_view(query_param,entity,service,views):
 
             dict_views[view_name]=view_items
             while next_link:
-                x = 1
-                LOGGER.info('X is: %s', x)
                 skip_token = get_skiptoken(next_link)
                 base_query["$skiptoken"] = skip_token
                 LOGGER.info('Base query is: %s', base_query)
@@ -229,7 +219,7 @@ def get_items_by_view(query_param,entity,service,views):
                 next_link = view_response.get('@odata.nextLink')
                 view_items = view_response.get('value')
                 dict_views[view_name].extend(view_items)
-                x += 1
+                
             
         except Exception as e:
             LOGGER.info("View not found: %s", view_id)
