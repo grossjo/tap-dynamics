@@ -200,9 +200,21 @@ def get_items_by_view(query_param,entity,service,views):
             LOGGER.info("View id: %s", view_id)
             x = {query_param: "{}".format(view_id)}
 
+            if entity == 'leads':
+                order_by = "leadid"
+            elif entity == 'contacts':
+                order_by = "contactid"
+            elif entity == 'opportunities':
+                order_by = "opportunityid"
+            else:
+                LOGGER.error(f"Entity {entity} not found")
+                raise Exception("Entity not found")
+
+            LOGGER.info("Order by: %s", order_by)
+
             base_query = {
                 query_param: "{}".format(view_id), 
-                "$orderby": "opportunityid"
+                "$orderby": order_by
             }
 
 
